@@ -1,0 +1,693 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define REL
+ 
+#pragma GCC optimize ("Ofast")
+ 
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <deque>
+#include <queue>
+#include <iomanip>
+#include <cstdio>
+#include <unordered_map>
+#include <unordered_set>
+#include <map>
+#include <string>
+#include <set>
+#include <bitset>
+#include <cassert>
+#include <cstdint>
+#include <cstring>
+#include <random>
+#include <cassert>
+#include <complex>
+ 
+using namespace std;
+ 
+typedef int64_t i64;
+typedef long long LL;
+typedef long double LD;
+typedef unsigned int uint;
+typedef complex <LD> cld;
+typedef complex <double> cd;
+typedef unsigned long long ULL;
+ 
+#define endl "\n"
+#define dendl "\n\n"
+#define mp make_pair
+#define size(v) (int)v.size()
+#define all(v) v.begin(), v.end()
+#define rall(v) v.rbegin(), v.rend()
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+template <typename T>
+T sqr(T a) {
+	return a * a;
+}
+ 
+template <typename T>
+int sign(T a) {
+	if (a == 0)
+		return 0;
+	return (a > 0 ? 1 : -1);
+}
+ 
+template <typename T1, typename T2>
+T2 sum_mod(T1 x, T2 MOD) {
+	if (x < 0)
+		x += MOD;
+	if (x >= MOD)
+		x -= MOD;
+	return x;
+}
+ 
+template <typename T1, typename T2>
+T2 mul_mod(T1 x, T2 MOD) {
+	if (x < 0)
+		return (abs(x) % MOD == 0 ? 0 : MOD - abs(x) % MOD);
+	return x % MOD;
+}
+ 
+template <typename T>
+bool uax(T &a, const T b) {
+	if (a < b) {
+		a = b;
+		return true;
+	}
+	return false;
+}
+ 
+template <typename T>
+bool uin(T &a, const T b) {
+	if (a > b) {
+		a = b;
+		return true;
+	}
+	return false;
+}
+ 
+template <typename T1, typename T2>
+istream &operator>>(istream &in, pair<T1, T2> &p) {
+	in >> p.first >> p.second;
+	return in;
+}
+ 
+template <typename T1, typename T2>
+ostream &operator<<(ostream &out, pair<T1, T2> &p) {
+	out << '(' << p.first << ' ' << p.second << ')';
+	return out;
+}
+ 
+mt19937_64 gen_rand;
+ 
+const int N = (int)1e5 + 7;
+const int LOG = 17;
+const int N_ = 1050;
+const int MAXN = (int)3e6 + 7;
+const int MOD = (int)1e9 + 7;
+const int INF = (int)1e9 + 7;
+const int CONST = 5000;
+const LL LINF = (i64)2e18;
+const LD PI = 3.1415926535897932384626433832795;
+const LD EPS = 1e-6;
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+struct Edge {
+	int u, v, lvl;
+	Edge() {};
+	Edge(int u, int v, int lvl) :
+		u(u), v(v), lvl(lvl) {};
+};
+ 
+bool operator < (const Edge &a, const Edge &b) {
+	auto pa = mp(a.u, a.v), pb = mp(b.u, b.v);
+	if (pa == pb)
+		return a.lvl < b.lvl;
+	return pa < pb;
+}
+ 
+struct Node {
+	Edge edg;
+	Node *l, *r, *par;
+	bool in_mst, good_edg, good_in_mst;
+	int y, cnt, num_ver, num_mst_edg, num_good_edg, num_good_in_mst;
+	Node() {
+		edg = Edge(-1, -1, -1);
+		l = r = par = nullptr;
+		in_mst = good_edg = good_in_mst = false;
+		y = gen_rand() % MOD;
+		cnt = 1;
+		num_ver = num_mst_edg = num_good_edg = num_good_in_mst = 0;
+	}
+};
+ 
+int node = 0;
+Node arr[MAXN];
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+int n, m, comp;
+map <Edge, Node*> edg;
+map <pair<int, int>, int> lvl;
+ 
+void read() {
+	cin >> n >> m;
+}
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+int cnt(Node *t) {
+	return (t ? t->cnt : 0);
+}
+ 
+int num_ver(Node *t) {
+	return (t ? t->num_ver : 0);
+}
+ 
+int num_mst_edg(Node *t) {
+	return (t ? t->num_mst_edg : 0);
+}
+ 
+int num_good_edg(Node *t) {
+	return (t ? t->num_good_edg : 0);
+}
+ 
+int num_good_in_mst(Node *t) {
+	return (t ? t->num_good_in_mst : 0);
+}
+ 
+Node *new_node() {
+	return &arr[node++];
+}
+ 
+void clear(Node *t) {
+	t->l = t->r = t->par = nullptr;
+	t->in_mst = t->good_edg = t->good_in_mst = false;
+	t->cnt = 1;
+	t->num_ver = t->num_mst_edg = t->num_good_edg = t->num_good_in_mst = 0;
+}
+ 
+void relax(Node *t) {
+	if (!t)
+		return;
+	t->cnt = 1 + cnt(t->l) + cnt(t->r);
+	t->num_ver = (t->edg.u == t->edg.v) + num_ver(t->l) + num_ver(t->r);
+	t->num_mst_edg = t->in_mst + num_mst_edg(t->l) + num_mst_edg(t->r);
+	t->num_good_edg = t->good_edg + num_good_edg(t->l) + num_good_edg(t->r);
+	t->num_good_in_mst = t->good_in_mst + num_good_in_mst(t->l) + num_good_in_mst(t->r);
+}
+ 
+void link(Node *par, Node *ch, bool lft) {
+	if (ch)
+		ch->par = par;
+	if (lft)
+		par->l = ch;
+	else
+		par->r = ch;
+}
+ 
+void unlink(Node *par, Node *ch, bool lft) {
+	if (ch && ch->par == par)
+		ch->par = nullptr;
+	if (lft)
+		par->l = nullptr;
+	else
+		par->r = nullptr;
+}
+ 
+bool lt = true, rt = false;
+ 
+Node *merge(Node *l, Node *r) {
+	if (!l || !r)
+		return (l ? l : r);
+	if (l->y > r->y) {
+		link(l, merge(l->r, r), rt);
+		relax(l);
+		return l;
+	}
+	else {
+		link(r, merge(l, r->l), lt);
+		relax(r);
+		return r;
+	}
+}
+ 
+pair <Node*, Node*> split(Node *t, int x) {
+	if (!t)
+		return mp(nullptr, nullptr);
+	int lcnt = cnt(t->l);
+	if (lcnt >= x) {
+		auto nt = split(t->l, x);
+		unlink(t, t->l, lt);
+		link(t, nt.second, lt);
+		relax(t);
+		return mp(nt.first, t);
+	}
+	else {
+		auto nt = split(t->r, x - lcnt - 1);
+		unlink(t, t->r, rt);
+		link(t, nt.first, rt);
+		relax(t);
+		return mp(t, nt.second);
+	}
+}
+ 
+Node *erase(Node *t, int x) {
+	if (!t)
+		return nullptr;
+	int lcnt = cnt(t->l);
+	if (lcnt + 1 == x) {
+		auto v = merge(t->l, t->r);
+		unlink(t, t->l, lt);
+		unlink(t, t->r, rt);
+		relax(v);
+		return v;
+	}
+	if (lcnt + 1 > x) {
+		link(t, erase(t->l, x), lt);
+		relax(t);
+		return t;
+	}
+	else {
+		link(t, erase(t->r, x - lcnt - 1), rt);
+		relax(t);
+		return t;
+	}
+}
+ 
+Node *insert(Node *t, Node *n, int x) {
+	if (!t)
+		return n;
+	if (n->y > t->y) {
+		auto nt = split(t, x);
+		link(n, nt.first, lt);
+		link(n, nt.second, rt);
+		relax(n);
+		return n;
+	}
+	int lcnt = cnt(t->l);
+	if (lcnt >= x) {
+		link(t, insert(t->l, n, x), lt);
+		relax(t);
+		return t;
+	}
+	else {
+		link(t, insert(t->r, n, x - lcnt - 1), rt);
+		relax(t);
+		return t;
+	}
+}
+ 
+Node *get_par(Node *t) {
+	while (t->par)
+		t = t->par;
+	return t;
+}
+ 
+int get_pos(Node *t) {
+	int res = 0;
+	Node *lst = nullptr;
+	while (t) {
+		if (lst != t->l)
+			res += cnt(t->l);
+		if (t->par && t->par->r == t)
+			res++;
+		lst = t;
+		t = t->par;
+	}
+	return res + 1;
+}
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+bool one_comp(int u, int v, int lvl) {
+	auto x = edg[Edge(u, u, lvl)], y = edg[Edge(v, v, lvl)];
+	x = get_par(x), y = get_par(y);
+	return x == y;
+}
+ 
+Node *reroot(int u, int lvl) {
+	auto t = edg[Edge(u, u, lvl)], root = get_par(t);
+	int pos = get_pos(t);
+	auto nt = split(root, pos - 1);
+	root = merge(nt.second, nt.first);
+	return root;
+}
+ 
+void insert_edge(Node *e, int ver, int lvl) {
+	int pos = get_pos(edg[Edge(ver, ver, lvl)]);
+	Node *root = get_par(edg[Edge(ver, ver, lvl)]);
+	insert(root, e, pos);
+}
+ 
+void link(int u, int v, int lvl) {
+	::lvl[mp(u, v)] = ::lvl[mp(v, u)] = lvl;
+	Node *e1, *e2;
+	auto ce1 = Edge(u, v, lvl), ce2 = Edge(v, u, lvl);
+	if (edg.count(Edge(u, v, lvl)))
+		e1 = edg[ce1], e2 = edg[ce2];
+	else {
+		e1 = new_node(), e2 = new_node();
+		e1->edg = ce1, e2->edg = ce2;
+		edg[ce1] = e1, edg[ce2] = e2;
+	}
+	e1->good_edg = e2->good_edg = true;
+	if (one_comp(u, v, lvl)) {
+		relax(e1), relax(e2);
+		insert_edge(e1, u, lvl);
+		insert_edge(e2, v, lvl);
+	}
+	else {
+		if (lvl == 0) 
+			comp--;
+		e1->in_mst = e2->in_mst = true;
+		e1->good_in_mst = e2->good_in_mst = true;
+		relax(e1), relax(e2);
+		Node *x = reroot(u, lvl), *y = reroot(v, lvl);
+		merge(merge(x, e1), merge(y, e2));
+	}
+}
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+bool in_mst(int u, int v, int lvl) {
+	auto e = edg[Edge(u, v, lvl)];
+	return e->in_mst;
+}
+ 
+tuple <Node*, Node*> remove_edge(int u, int v, int lvl, bool fl) {
+	Node *e1 = edg[Edge(u, v, lvl)], *e2 = edg[Edge(v, u, lvl)], *root = get_par(e1);
+	int p1 = get_pos(e1), p2 = get_pos(e2);
+	if (p1 > p2)
+		swap(e1, e2), swap(p1, p2);
+	root = erase(root, p1), root = erase(root, p2 - 1);
+	clear(e1), clear(e2);
+	Node *tu = nullptr, *tv = nullptr;
+	if (fl) {
+		auto t1 = split(root, p1 - 1), t2 = split(t1.second, p2 - p1 - 1);
+		tu = merge(t1.first, t2.second), tv = t2.first;
+	}
+	return make_tuple(tu, tv);
+}
+ 
+Node *get_good_in_mst(Node *t) {
+	if (t->good_in_mst) {
+		t->good_edg = t->good_in_mst = false;
+		relax(t);
+		return t;
+	}
+	if (!num_good_in_mst(t))
+		return nullptr;
+	Node *ret = nullptr;
+	if (num_good_in_mst(t->l))
+		ret = get_good_in_mst(t->l);
+	else
+		ret = get_good_in_mst(t->r);
+	relax(t);
+	return ret;
+}
+ 
+Node *get_good_edge(Node *t) {
+	if (t->good_edg) {
+		t->good_edg = false;
+		relax(t);
+		return t;
+	}
+	if (!num_good_edg(t))
+		return nullptr;
+	Node *ret = nullptr;
+	if (num_good_edg(t->l))
+		ret = get_good_edge(t->l);
+	else
+		ret = get_good_edge(t->r);
+	relax(t);
+	return ret;
+}
+ 
+void cut(int u, int v, int lvl) {
+	if (lvl < 0)
+		return;
+	int conu = -1, conv = -1;
+	for (int it = lvl; it >= 0; it--) {
+		if (!in_mst(u, v, it)) {
+			conu = 0;
+			remove_edge(u, v, it, false);
+			continue;
+		}
+		Node *lroot, *rroot;
+		tie(lroot, rroot) = remove_edge(u, v, it, true);
+		if (lroot->num_ver > rroot->num_ver)
+			swap(lroot, rroot);
+		if (conu != -1) {
+			Node *e1 = edg[Edge(conu, conv, it)], *e2 = edg[Edge(conv, conu, it)];
+			Node *r1 = get_par(e1), *r2 = get_par(e2);
+			int p1 = get_pos(e1), p2 = get_pos(e2);
+			r1 = erase(r1, p1), r2 = erase(r2, p2);
+			clear(e1), clear(e2);
+			e1->in_mst = true, e2->in_mst = true;
+			reroot(conu, it), reroot(conv, it);
+			merge(merge(r1, e1), merge(r2, e2));
+			continue;
+		}
+		while (true) {
+			auto mst_edg = get_good_in_mst(lroot);
+			if (!mst_edg)
+				break;
+			int u = mst_edg->edg.u, v = mst_edg->edg.v;
+			auto e = edg[Edge(v, u, it)];
+			e->good_edg = e->good_in_mst = false;
+			while (e) {
+				relax(e);
+				e = e->par;
+			}
+			link(u, v, it + 1);
+		}
+		while (true) {
+			auto good_edg = get_good_edge(lroot);
+			if (!good_edg)
+				break;
+			int u = good_edg->edg.u, v = good_edg->edg.v;
+			auto e = edg[Edge(v, u, it)];
+			e->good_edg = false;
+			while (e) {
+				relax(e);
+				e = e->par;
+			}
+			if (!one_comp(u, v, it)) {
+				conu = u, conv = v;
+				break;
+			}
+			link(u, v, it + 1);
+			::lvl[mp(u, v)] = ::lvl[mp(v, u)] = it + 1;
+		}
+		if (conu != -1) {
+			Node *e1 = edg[Edge(conu, conv, it)], *e2 = edg[Edge(conv, conu, it)];
+			Node *r1 = get_par(e1), *r2 = get_par(e2);
+			int p1 = get_pos(e1), p2 = get_pos(e2);
+			r1 = erase(r1, p1), r2 = erase(r2, p2);
+			clear(e1), clear(e2);
+			e1->in_mst = true, e2->in_mst = true;
+			reroot(conu, it), reroot(conv, it);
+			merge(merge(r1, e1), merge(r2, e2));
+			link(conu, conv, it + 1);
+			::lvl[mp(conu, conv)] = ::lvl[mp(conv, conu)] = it + 1;
+		}
+	}
+	if (conu == -1)
+		comp++;
+}
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+void print_edge(const Edge &e) {
+	cout << '(' << e.u << ", " << e.v << ", " << e.lvl << ')' << ' ';
+}
+ 
+void print(Node *t) {
+	if (!t)
+		return;
+	print(t->l);
+	print_edge(t->edg);
+	print(t->r);
+}
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+void solve() {
+	for (int i = 1; i <= n; i++) {
+		for (int log = 0; log < LOG; log++) {
+			auto cnode = new_node();
+			cnode->edg = Edge(i, i, log);
+			edg[Edge(i, i, log)] = cnode;
+		}
+	}
+	comp = n;
+	for (int i = 0; i < m; i++) {
+		char t; cin >> t;
+		if (t == '?')
+			cout << comp << endl;
+		if (t == '+') {
+			int u, v;
+			cin >> u >> v;
+			link(u, v, 0);
+		}
+		if (t == '-') {
+			int u, v;
+			cin >> u >> v;
+			cut(u, v, lvl[mp(u, v)]);
+		}
+		/*cout << "Query " << i << ":\n";
+		for (int j = 0; j < node; j++) {
+			if (arr[j].par != nullptr || arr[j].edg.lvl > 3)
+				continue;
+			print(&arr[j]);
+			cout << endl;
+		}
+		cout << endl;*/
+	}
+}
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+#define STRESS
+ 
+double max_time = 0;
+ 
+void gen() {
+ 
+}
+ 
+void stupid() {
+ 
+}
+ 
+void write() {
+ 
+}
+ 
+set <pair<int, int>> e;
+set <int> gr[100];
+bool used[100];
+ 
+void dfs(int u) {
+	used[u] = true;
+	for (int to : gr[u]) {
+		if (used[to])
+			continue;
+		dfs(to);
+	}
+}
+ 
+void stress() {
+	n = gen_rand() % 6 + 2;
+	m = gen_rand() % 12 + 1;
+	cout << n << ' ' << m << endl;
+ 
+	e.clear(),  lvl.clear(), edg.clear();
+	for (int i = 0; i < node; i++)
+		arr[i] = Node();
+	node = 0, comp = n;
+	for (int i = 1; i <= n; i++) {
+		gr[i].clear();
+		for (int log = 0; log < LOG; log++) {
+			auto cnode = new_node();
+			cnode->edg = Edge(i, i, log);
+			edg[Edge(i, i, log)] = cnode;
+		}
+	}
+ 
+	for (int i = 0; i < m; i++) {
+		int t = gen_rand() % 3;
+		if (size(e) == 0) 
+			t = gen_rand() % 2;
+		if (size(e) == n * (n - 1))
+			t = 1 - (gen_rand() % 2 == 0 ? 1 : -1);
+		if (t == 0) {
+			int fans = comp, sans = 0;
+			fill(used + 1, used + n + 1, false);
+			for (int i = 1; i <= n; i++) {
+				if (used[i])
+					continue;
+				sans++, dfs(i);
+			}
+			cout << "? " << fans << ' ' << sans << endl;
+			if (fans != sans)
+				exit(0);
+		}
+		if (t == 1) {
+			int u = -1, v = -1;
+			while (true) {
+				u = gen_rand() % n + 1, v = gen_rand() % n + 1;
+				if (u == v || gr[u].count(v))
+					continue;
+				break;
+			}
+			link(u, v, 0);
+			e.insert(mp(u, v));
+			e.insert(mp(v, u));
+			gr[u].insert(v);
+			gr[v].insert(u);
+			cout << "+ " << u << ' ' << v << endl;
+		}
+		if (t == 2) {
+			int pos = gen_rand() % size(e);
+			auto it = e.begin();
+			while (pos--)
+				it++;
+			int u = (*it).first, v = (*it).second;
+			e.erase(mp(u, v));
+			e.erase(mp(v, u));
+			gr[u].erase(v), gr[v].erase(u);
+			cut(u, v, lvl[mp(u, v)]);
+			cout << "- " << u << ' ' << v << endl;
+		}
+	}
+	cout << "OK\n\n";
+}
+ 
+void check_time() {
+	double start = clock();
+	read(), solve();
+	cout << "\nTime is " << (clock() - start) / 1000.0 << "s\n";
+}
+ 
+void check_rand_time() {
+	gen_rand.seed(time(0));
+	double start = clock();
+	gen(), solve();
+	double cur_time = (clock() - start) / 1000.0;
+	uax(max_time, cur_time);
+	cerr << "cur_time = " << cur_time << "    ||    " << "max_time = " << max_time << endl;
+}
+ 
+/////////////////////////////////////////////////////////////////////
+ 
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+	cout << fixed << setprecision(20);
+	cerr << fixed << setprecision(20);
+	gen_rand.seed(0);
+#else
+	cout << fixed << setprecision(20);
+	ios_base::sync_with_stdio(0);
+	cin.tie(0); cout.tie(0);
+	gen_rand.seed(time(0));
+#endif
+ 
+#ifdef nSTRESS
+	while (true)
+		stress();
+#else
+	int t = 1;
+	while (t--) {
+		read();
+		solve();
+	}
+#endif
+}
